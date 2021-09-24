@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import tensorflow as tf  # noqa: E402
 
-from superpoint.settings import EXPER_PATH  # noqa: E402
+# from superpoint.settings import EXPER_PATH  # noqa: E402
 
 
 def extract_SIFT_keypoints_and_descriptors(img):
@@ -35,10 +35,12 @@ def extract_superpoint_keypoints_and_descriptors(keypoint_map, descriptor_map,
     keypoints = keypoints.astype(int)
 
     # Get descriptors for keypoints
+    import pdb;pdb.set_trace()
     desc = descriptor_map[keypoints[:, 0], keypoints[:, 1]]
 
     # Convert from just pts to cv2.KeyPoints
-    keypoints = [cv2.KeyPoint(p[1], p[0], 1) for p in keypoints]
+    # keypoints = [cv2.KeyPoint(p[1], p[0], 1) for p in keypoints]
+    keypoints = [[p[1], p[0]] for p in keypoints]
 
     return keypoints, desc
 
@@ -56,12 +58,12 @@ def match_descriptors(kp1, desc1, kp2, desc2):
 
 
 def compute_homography(matched_kp1, matched_kp2):
-    matched_pts1 = cv2.KeyPoint_convert(matched_kp1)
-    matched_pts2 = cv2.KeyPoint_convert(matched_kp2)
+    # matched_pts1 = cv2.KeyPoint_convert(matched_kp1)
+    # matched_pts2 = cv2.KeyPoint_convert(matched_kp2)
 
     # Estimate the homography between the matches using RANSAC
-    H, inliers = cv2.findHomography(matched_pts1[:, [1, 0]],
-                                    matched_pts2[:, [1, 0]],
+    H, inliers = cv2.findHomography(np.asarray(matched_kp1)[:,[1,0]],
+                                    np.asarray(matched_kp2)[:,[1,0]],
                                     cv2.RANSAC)
     inliers = inliers.flatten()
     return H, inliers
@@ -104,14 +106,15 @@ if __name__ == '__main__':
     img_size = (args.W, args.H)
     keep_k_best = args.k_best
 
+    EXPER_PATH = '/home/vince/Experiments/SuperPoint/pretrained_models/'
     weights_root_dir = Path(EXPER_PATH, 'saved_models')
     weights_root_dir.mkdir(parents=True, exist_ok=True)
     weights_dir = Path(weights_root_dir, weights_name)
 
     graph = tf.Graph()
-    with tf.Session(graph=graph) as sess:
-        tf.saved_model.loader.load(sess,
-                                   [tf.saved_model.tag_constants.SERVING],
+    with tf.compat.v1.Session(graph=graph) as sess:
+        tf.compat.v1.saved_model.loader.load(sess,
+                                   [tf.saved_model.SERVING],
                                    str(weights_dir))
 
         input_img_tensor = graph.get_tensor_by_name('superpoint/image:0')
@@ -137,6 +140,7 @@ if __name__ == '__main__':
         # Match and get rid of outliers
         m_kp1, m_kp2, matches = match_descriptors(kp1, desc1, kp2, desc2)
         H, inliers = compute_homography(m_kp1, m_kp2)
+        import pdb;pdb.set_trace()
 
         # Draw SuperPoint matches
         matches = np.array(matches)[inliers.astype(bool)].tolist()

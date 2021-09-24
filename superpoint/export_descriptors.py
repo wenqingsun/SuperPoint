@@ -17,6 +17,8 @@ if __name__ == '__main__':
     parser.add_argument('--export_name', type=str, default=None)
     args = parser.parse_args()
 
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+
     experiment_name = args.experiment_name
     export_name = args.export_name if args.export_name else experiment_name
     with open(args.config, 'r') as f:

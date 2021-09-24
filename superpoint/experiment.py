@@ -15,6 +15,9 @@ logging.basicConfig(format='[%(asctime)s %(levelname)s] %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S', level=logging.INFO)
 import tensorflow as tf  # noqa: E402
 
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()
+
 
 def train(config, n_iter, output_dir, pretrained_dir=None,
           checkpoint_name='model.ckpt'):
@@ -54,11 +57,12 @@ def predict(config, output_dir, n_iter):
 
 
 def set_seed(seed):
-    tf.set_random_seed(seed)
+    tf.compat.v1.set_random_seed(seed)
     np.random.seed(seed)
 
 
 def get_num_gpus():
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     return len(os.environ['CUDA_VISIBLE_DEVICES'].split(','))
 
 
@@ -78,7 +82,7 @@ def _init_graph(config, with_dataset=False):
     else:
         yield model
     model.__exit__()
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
 
 
 def _cli_train(config, output_dir, args):
@@ -149,6 +153,9 @@ if __name__ == '__main__':
     p_train.set_defaults(func=_cli_pred)
 
     args = parser.parse_args()
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '2'
+
     with open(args.config, 'r') as f:
         config = yaml.load(f)
     output_dir = os.path.join(EXPER_PATH, args.exper_name)
